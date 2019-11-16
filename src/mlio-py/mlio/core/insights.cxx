@@ -19,6 +19,7 @@
 #include "mlio/util/string.h"
 #include "tbb/tbb.h"
 
+
 #include <pybind11/stl_bind.h>
 
 #include <exception>
@@ -104,6 +105,12 @@ class column_analyzer {
 
             auto should_capture = capture_columns->count(feature_idx) > 0;
 
+            // Used to update the mean.
+            // We do this here to aggregate several entries together and avoid
+            // potential numerical problems updating the mean a single entry at a time. 
+            double numeric_column_sum = 0.0;
+            double numeric_column_count = 0.0;
+
             for (std::string as_string : cells) {
                 feature_statistics.rows_seen += 1;
                 feature_statistics.example_value = as_string;
@@ -126,6 +133,8 @@ class column_analyzer {
                     feature_statistics.numeric_nan_count += 1;
                 } else {
                     feature_statistics.numeric_count += 1;
+                    numeric_column_sum += as_float;
+                    numeric_column_count += 1;
                     if (isnan(feature_statistics.numeric_min) || as_float < feature_statistics.numeric_min) {
                         feature_statistics.numeric_min = as_float;
                     }
@@ -149,6 +158,11 @@ class column_analyzer {
                     feature_statistics.string_null_like_count += 1;
                 }
             }
+
+            // Update the mean of numeric values based on the entire range of values.
+            feature_statistics.numeric_mean += 
+                ((numeric_column_sum / numeric_column_count) - feature_statistics.numeric_mean)
+                * numeric_column_count / (feature_statistics.numeric_count - numeric_column_count);
         }
     }
 
