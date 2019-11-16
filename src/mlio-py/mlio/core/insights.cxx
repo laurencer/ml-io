@@ -17,8 +17,8 @@
 #include "mlio/parser.h"
 #include "mlio/util/number.h"
 #include "mlio/util/string.h"
+#include "mlio/util/hll/hyperloglog.h"
 #include "tbb/tbb.h"
-
 
 #include <pybind11/stl_bind.h>
 
@@ -39,6 +39,8 @@ namespace mliopy {
 namespace detail {
 namespace {
 
+static const uint8_t CARDINALITY_HLL_SIZE = 16;
+
 class column_analysis {
     public:
 
@@ -57,7 +59,9 @@ class column_analysis {
           null_like_count(0), 
           null_whitespace_only_count(0),
           example_value("")
-    { column_name = name; }
+    { column_name = name; 
+      string_cardinality = hll::HyperLogLog(CARDINALITY_HLL_SIZE); 
+    }
 
     std::string column_name;
 
@@ -71,6 +75,7 @@ class column_analysis {
     long string_empty_count;
     long string_only_whitespace_count;
     long string_null_like_count;
+    hll::HyperLogLog string_cardinality;
     std::unordered_set<std::string> string_captured_unique_values;
     bool string_captured_unique_values_overflowed;
     
@@ -114,8 +119,7 @@ class column_analyzer {
             for (std::string as_string : cells) {
                 feature_statistics.rows_seen += 1;
                 feature_statistics.example_value = as_string;
-                feature_statistics.numeric_min += 1;
-                feature_statistics.string_null_like_count += 1;
+                feature_statistics.string_cardinality.add(as_string.c_str(), as_string.length());
 
                 if (should_capture) {
                     if (feature_statistics.string_captured_unique_values.size() < max_capture_count) {
@@ -271,6 +275,7 @@ register_insights(py::module &m)
 
     auto ca_class = py::class_<mliopy::detail::column_analysis>(m, "ColumnAnalysis");
     ca_class.def_readwrite("column_name", &detail::column_analysis::column_name);
+    ca_class.def("string_cardinality", [](const detail::column_analysis &ca) { return (int)std::round(ca.string_cardinality.estimate()); });
     ca_class.def_readwrite("string_captured_unique_values", &detail::column_analysis::string_captured_unique_values);
     ca_class.def_readwrite("string_captured_unique_values_overflowed", &detail::column_analysis::string_captured_unique_values_overflowed);
 
@@ -317,6 +322,8 @@ register_insights(py::module &m)
                 std::string value = (ca.*method);
                 result[name] = value;
             }
+
+            result["string_cardinality"] = (int)std::round(ca.string_cardinality.estimate());
 
             return result;
         });
