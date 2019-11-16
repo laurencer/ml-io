@@ -31,6 +31,7 @@ PYBIND11_MODULE(core, m)
     register_memory_slice(m);
     register_device_array(m);
     register_tensors(m);
+    register_insights(m);
     register_integ(m);
     register_streams(m);
     register_data_stores(m);

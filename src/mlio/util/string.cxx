@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cctype>
 #include <iterator>
+#include <string>
+#include <string_view>
 
 namespace mlio {
 inline namespace v1 {
@@ -46,6 +48,25 @@ trim(std::string_view s) noexcept
     detail::rtrim(s);
 
     return s;
+}
+
+bool
+matches(std::string_view s, std::unordered_set<std::string> const *match_values) noexcept
+{
+    std::string local_copy = std::string(s);
+    trim(local_copy);
+
+    return (match_values->find(local_copy) != match_values->end());
+}
+
+bool
+only_whitespace(std::string_view s) noexcept
+{
+    auto pos = std::find_if_not(s.cbegin(), s.cend(), [](int ch) {
+        return std::isspace(ch);
+    });
+
+    return pos == s.cend();
 }
 
 }  // namespace v1

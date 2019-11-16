@@ -16,6 +16,7 @@ import logging
 import mlio.core
 
 from mlio.core import\
+    analyze_dataset,\
     BadBatchHandling,\
     Compression,\
     CooTensor,\

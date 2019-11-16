@@ -45,6 +45,9 @@ void
 register_tensors(pybind11::module &m);
 
 void
+register_insights(pybind11::module &m);
+
+void
 register_integ(pybind11::module &m);
 
 void

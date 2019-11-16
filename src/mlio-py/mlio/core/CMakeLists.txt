@@ -7,6 +7,7 @@ pybind11_add_module(mlio-py-core MODULE SYSTEM THIN_LTO
     data_stores.cxx
     example.cxx
     exceptions.cxx
+    insights.cxx
     integ.cxx
     logging.cxx
     memory.cxx
